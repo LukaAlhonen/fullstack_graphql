@@ -1,0 +1,28 @@
+{
+  "name": "graphql_backend",
+  "version": "1.0.0",
+  "description": "backend for graphql exercises",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/LukaAlhonen/fullstack_graphql.git"
+  },
+  "author": "Luka Alhonen",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.0",
+    "graphql": "^16.9.0"
+  },
+  "bugs": {
+    "url": "https://github.com/LukaAlhonen/fullstack_graphql/issues"
+  },
+  "homepage": "https://github.com/LukaAlhonen/fullstack_graphql#readme"
+}
