@@ -108,8 +108,8 @@ const typeDefs = `
   }
 
   type Author {
-    name: String!
-    id: ID!
+    name: String
+    id: ID
     born: Int
     bookCount: Int
   }
@@ -128,6 +128,10 @@ const typeDefs = `
       published: Int!
       genres: [String!]!
     ): Book
+    editAuthor(
+      name: String!
+      setBornTo: Int!
+    ): Author
   }
 `;
 
@@ -140,9 +144,12 @@ const resolvers = {
         return books;
       }
 
+      // Filter books by author if arg is given
       const filteredByAuthor = args.author
         ? books.filter((b) => b.author === args.author)
         : books;
+
+      // Filter books by genre if arg is given
       const filteredByGenre = args.genre
         ? filteredByAuthor.filter((b) => b.genres.find((g) => g === args.genre))
         : filteredByAuthor;
@@ -159,13 +166,24 @@ const resolvers = {
   },
   Mutation: {
     addBook: (root, args) => {
+      // Create new book
       const book = { ...args, id: uuid() };
+
+      // If author of new book is not in list of authors then add new author to list
       if (!books.find((b) => b.author === book.author)) {
         const newAuthor = { name: book.author, id: uuid() };
         authors = authors.concat(newAuthor);
       }
       books = books.concat(book);
       return book;
+    },
+    editAuthor: (root, args) => {
+      // Find author by name and update birthyear if found
+      const author = authors.find((a) => a.name == args.name);
+      if (author) author.born = args.setBornTo;
+
+      // Return updated author object (null if not found)
+      return author;
     },
   },
 };
