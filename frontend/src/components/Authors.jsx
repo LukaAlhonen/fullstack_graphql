@@ -1,33 +1,65 @@
 import { useQuery, useMutation } from "@apollo/client";
 import { useState } from "react";
 import { ALL_AUTHORS, EDIT_BIRTHYEAR } from "../queries";
+import Select from "react-select";
 
-const AuthorForm = () => {
-  const [name, setName] = useState("");
+const AuthorForm = ({ authors, setError }) => {
   const [born, setBorn] = useState("");
+  const [selectedAuthor, setSelectedAuthor] = useState(null);
 
   const [editBirthyear] = useMutation(EDIT_BIRTHYEAR, {
     refetchQueries: [{ query: ALL_AUTHORS }],
   });
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
 
-    editBirthyear({ variables: { name, setBornTo: parseInt(born, 10) } });
+    if (!selectedAuthor) {
+      setError("Select an author from the drop-down menu");
+      return;
+    }
 
-    setName("");
-    setBorn("");
+    if (!born) {
+      setError("Enter a birthyear");
+      return;
+    }
+
+    try {
+      await editBirthyear({
+        variables: {
+          name: selectedAuthor.value,
+          setBornTo: parseInt(born, 10),
+        },
+      });
+      setSelectedAuthor(null);
+      setBorn("");
+      setError(null);
+    } catch (error) {
+      console.log(
+        "An error occured while updating author the birthyear: ",
+        error,
+      );
+      setError("An error has occured while updating the author birthyear");
+    }
   };
+
+  const options = authors.map((a) => ({
+    value: a.name,
+    label: a.name,
+  }));
 
   return (
     <div>
       <h3>Set birthyear</h3>
       <form onSubmit={submit}>
         <div>
-          name{" "}
-          <input
-            value={name}
-            onChange={({ target }) => setName(target.value)}
+          <Select
+            key={selectedAuthor ? selectedAuthor.value : "empty"} // force Select component to re-render after submit
+            defaultValue={selectedAuthor || null}
+            onChange={setSelectedAuthor}
+            options={options}
+            placeholder="Select an author from the drop-down list"
+            isClearable
           />
         </div>
         <div>
@@ -43,7 +75,7 @@ const AuthorForm = () => {
   );
 };
 
-const Authors = () => {
+const Authors = ({ setError }) => {
   const result = useQuery(ALL_AUTHORS);
 
   if (result.loading) {
@@ -71,7 +103,7 @@ const Authors = () => {
           ))}
         </tbody>
       </table>
-      <AuthorForm />
+      <AuthorForm authors={authors} setError={setError} />
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ADD_BOOK, ALL_BOOKS, ALL_AUTHORS } from "../queries";
 
-const NewBook = () => {
+const NewBook = ({ setError }) => {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [published, setPublished] = useState("");
@@ -16,10 +16,27 @@ const NewBook = () => {
   const submit = async (event) => {
     event.preventDefault();
 
+    if (!title) {
+      setError("Enter a title");
+      return;
+    }
+    if (!author) {
+      setError("Enter the name of the author");
+      return;
+    }
+    if (!published) {
+      setError("Enter the year the book was published");
+      return;
+    }
+    if (genres.length < 1) {
+      setError("Add at least one genre");
+      return;
+    }
+
     console.log("add book...");
 
     try {
-      addBook({
+      await addBook({
         variables: {
           title,
           author,
@@ -35,6 +52,7 @@ const NewBook = () => {
       setGenre("");
     } catch (error) {
       console.log("Error adding book: ", error);
+      setError("An error has occured while adding the book");
     }
   };
 
