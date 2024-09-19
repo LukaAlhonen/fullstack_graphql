@@ -18,15 +18,24 @@ const NewBook = () => {
 
     console.log("add book...");
 
-    addBook({
-      variables: { title, author, published: parseInt(published, 10), genres },
-    });
+    try {
+      addBook({
+        variables: {
+          title,
+          author,
+          published: parseInt(published, 10),
+          genres,
+        },
+      });
 
-    setTitle("");
-    setPublished("");
-    setAuthor("");
-    setGenres([]);
-    setGenre("");
+      setTitle("");
+      setPublished("");
+      setAuthor("");
+      setGenres([]);
+      setGenre("");
+    } catch (error) {
+      console.log("Error adding book: ", error);
+    }
   };
 
   const addGenre = () => {
