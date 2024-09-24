@@ -65,6 +65,7 @@ const resolvers = {
     bookCount: async () => Book.collection.countDocuments(),
     authorCount: async () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
+      // If no filter -> return all books
       if (!args.author && !args.genre) {
         const books = await Book.find({}).populate("author");
 
@@ -99,6 +100,7 @@ const resolvers = {
       // Check if author exists, if not add to db
       let author = await Author.findOne({ name: args.author });
 
+      // Add new author to db
       if (!author) {
         author = new Author({ name: args.author });
         try {
