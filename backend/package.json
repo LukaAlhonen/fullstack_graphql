@@ -19,7 +19,11 @@
   },
   "dependencies": {
     "@apollo/server": "^4.11.0",
-    "graphql": "^16.9.0"
+    "dotenv": "^16.4.5",
+    "graphql": "^16.9.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.6.3",
+    "mongoose-unique-validator": "^5.0.1"
   },
   "bugs": {
     "url": "https://github.com/LukaAlhonen/fullstack_graphql/issues"
