@@ -10,7 +10,28 @@ const NewBook = ({ setError }) => {
   const [genres, setGenres] = useState([]);
 
   const [addBook] = useMutation(ADD_BOOK, {
-    refetchQueries: [{ query: ALL_AUTHORS }, { query: ALL_BOOKS }],
+    onError: (error) => {
+      const messages = error.graphQLErrors.map((e) => e.message).join("\n");
+      setError(messages);
+    },
+    update: (cache, response) => {
+      cache.updateQuery({ query: ALL_AUTHORS }, ({ allAuthors }) => {
+        const newAuthor = response.data.addBook.author;
+        console.log(newAuthor.name);
+        if (allAuthors.some((a) => a.id === newAuthor.id)) {
+          return { allAuthors };
+        }
+
+        return {
+          allAuthors: allAuthors.concat(newAuthor),
+        };
+      });
+      cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => {
+        return {
+          allBooks: allBooks.concat(response.data.addBook),
+        };
+      });
+    },
   });
 
   const submit = async (event) => {
@@ -35,25 +56,20 @@ const NewBook = ({ setError }) => {
 
     console.log("add book...");
 
-    try {
-      await addBook({
-        variables: {
-          title,
-          author,
-          published: parseInt(published, 10),
-          genres,
-        },
-      });
+    await addBook({
+      variables: {
+        title,
+        author,
+        published: parseInt(published, 10),
+        genres,
+      },
+    });
 
-      setTitle("");
-      setPublished("");
-      setAuthor("");
-      setGenres([]);
-      setGenre("");
-    } catch (error) {
-      console.log("Error adding book: ", error);
-      setError("An error has occured while adding the book");
-    }
+    setTitle("");
+    setPublished("");
+    setAuthor("");
+    setGenres([]);
+    setGenre("");
   };
 
   const addGenre = () => {

@@ -8,6 +8,10 @@ const AuthorForm = ({ authors, setError }) => {
   const [selectedAuthor, setSelectedAuthor] = useState(null);
 
   const [editBirthyear] = useMutation(EDIT_BIRTHYEAR, {
+    onError: (error) => {
+      const messages = error.graphQLErrors.map((e) => e.message).join("\n");
+      setError(messages);
+    },
     refetchQueries: [{ query: ALL_AUTHORS }],
   });
 
@@ -24,23 +28,14 @@ const AuthorForm = ({ authors, setError }) => {
       return;
     }
 
-    try {
-      await editBirthyear({
-        variables: {
-          name: selectedAuthor.value,
-          setBornTo: parseInt(born, 10),
-        },
-      });
-      setSelectedAuthor(null);
-      setBorn("");
-      setError(null);
-    } catch (error) {
-      console.log(
-        "An error occured while updating author the birthyear: ",
-        error,
-      );
-      setError("An error has occured while updating the author birthyear");
-    }
+    await editBirthyear({
+      variables: {
+        name: selectedAuthor.value,
+        setBornTo: parseInt(born, 10),
+      },
+    });
+    setSelectedAuthor(null);
+    setBorn("");
   };
 
   const options = authors.map((a) => ({
@@ -75,7 +70,7 @@ const AuthorForm = ({ authors, setError }) => {
   );
 };
 
-const Authors = ({ setError }) => {
+const Authors = ({ setError, isAuthenticated }) => {
   const result = useQuery(ALL_AUTHORS);
 
   if (result.loading) {
@@ -103,7 +98,9 @@ const Authors = ({ setError }) => {
           ))}
         </tbody>
       </table>
-      <AuthorForm authors={authors} setError={setError} />
+      {isAuthenticated() ? (
+        <AuthorForm authors={authors} setError={setError} />
+      ) : null}
     </div>
   );
 };
