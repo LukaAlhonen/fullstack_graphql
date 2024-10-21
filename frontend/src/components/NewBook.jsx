@@ -17,7 +17,6 @@ const NewBook = ({ setError }) => {
     update: (cache, response) => {
       cache.updateQuery({ query: ALL_AUTHORS }, ({ allAuthors }) => {
         const newAuthor = response.data.addBook.author;
-        console.log(newAuthor.name);
         if (allAuthors.some((a) => a.id === newAuthor.id)) {
           return { allAuthors };
         }
@@ -54,7 +53,7 @@ const NewBook = ({ setError }) => {
       return;
     }
 
-    console.log("add book...");
+    console.log("Adding new book...");
 
     await addBook({
       variables: {

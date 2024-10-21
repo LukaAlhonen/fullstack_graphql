@@ -77,7 +77,7 @@ const Authors = ({ setError, isAuthenticated }) => {
     return <div>loading...</div>;
   }
 
-  const authors = result.data.allAuthors;
+  const authors = result?.data?.allAuthors;
 
   return (
     <div>
@@ -89,16 +89,18 @@ const Authors = ({ setError, isAuthenticated }) => {
             <th>born</th>
             <th>books</th>
           </tr>
-          {authors.map((a) => (
-            <tr key={a.id}>
-              <td>{a.name}</td>
-              <td>{a.born}</td>
-              <td>{a.bookCount}</td>
-            </tr>
-          ))}
+          {authors &&
+            authors.length > 0 &&
+            authors.map((a) => (
+              <tr key={a.id}>
+                <td>{a.name}</td>
+                <td>{a.born}</td>
+                <td>{a.bookCount}</td>
+              </tr>
+            ))}
         </tbody>
       </table>
-      {isAuthenticated() ? (
+      {isAuthenticated() && authors && authors.length > 0 ? (
         <AuthorForm authors={authors} setError={setError} />
       ) : null}
     </div>
