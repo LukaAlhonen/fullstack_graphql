@@ -5,7 +5,7 @@ import {
   Link,
   Navigate,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, createContext } from "react";
 
 import Authors from "./components/Authors";
 import Books from "./components/Books";
@@ -14,7 +14,11 @@ import LoginForm from "./components/LoginForm";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FavouriteBooks from "./components/FavouriteBooks";
 
-import { useApolloClient } from "@apollo/client";
+import { useApolloClient, useSubscription } from "@apollo/client";
+
+import { ALL_BOOKS, BOOK_ADDED } from "./queries";
+
+export const AppContext = createContext();
 
 const Notify = ({ errorMessage }) => {
   if (!errorMessage) {
@@ -34,13 +38,73 @@ const App = () => {
     localStorage.getItem("bookstore-user-token"),
   );
   const [errorMessage, setErrorMessage] = useState("");
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [favouriteGenre, setFavouriteGenre] = useState(""); // This is set in FavouriteBooks through AppContext
 
   const client = useApolloClient();
 
+  // This function adds a new book to the cache while making sure it is only added once
+  const updateCache = (cache, query, addedBook) => {
+    const isUnique = (b) => {
+      let seen = new Set();
+      return b.filter((item) => {
+        let k = item.title;
+        return seen.has(k) ? false : seen.add(k);
+      });
+    };
+
+    const cachedBooks = cache.readQuery(query);
+
+    if (
+      !cachedBooks ||
+      !cachedBooks.allBooks ||
+      cachedBooks.allBooks.length === 0
+    ) {
+      return { allBooks: [addedBook] };
+    } else {
+      cache.updateQuery(query, ({ allBooks }) => {
+        return { allBooks: isUnique(allBooks.concat(addedBook)) };
+      });
+    }
+  };
+
+  // All subscriptions are handled in App in order to keep the addition of
+  // new items consistent over multiple browser sessions
+  useSubscription(BOOK_ADDED, {
+    onData: ({ data }) => {
+      const addedBook = data.data.bookAdded;
+
+      notify(`Added Book: ${addedBook.title}`);
+      try {
+        if (addedBook.genres.includes(favouriteGenre)) {
+          // Update query for allBooks with genre param
+          updateCache(
+            client.cache,
+            {
+              query: ALL_BOOKS,
+              variables: { genre: favouriteGenre },
+            },
+            addedBook,
+          );
+        }
+        // Update query for allBooks without genre param
+        updateCache(client.cache, { query: ALL_BOOKS }, addedBook);
+      } catch (error) {
+        console.log(error);
+        notify(
+          error.message || "An error has occured while updating the cache",
+        );
+      }
+    },
+  });
+
   const notify = (e) => {
+    if (isNotifying) return;
+    setIsNotifying(true);
     setErrorMessage(e);
     setTimeout(() => {
       setErrorMessage(null);
+      setIsNotifying(false);
     }, 10000);
   };
 
@@ -48,6 +112,7 @@ const App = () => {
     setToken(null);
     localStorage.clear();
     client.resetStore();
+    setFavouriteGenre("");
   };
 
   const linkStyle = {
@@ -63,72 +128,74 @@ const App = () => {
   };
 
   return (
-    <div>
-      <Router>
-        <div>
-          <Link style={linkStyle} to="/authors">
-            authors
-          </Link>
-          <Link style={linkStyle} to="/books">
-            books
-          </Link>
-          {token ? (
-            <Link style={linkStyle} to="/addbook">
-              add book
+    <AppContext.Provider value={{ favouriteGenre, setFavouriteGenre }}>
+      <div>
+        <Router>
+          <div>
+            <Link style={linkStyle} to="/authors">
+              authors
             </Link>
-          ) : (
-            <Link style={linkStyle} to="/login">
-              login
+            <Link style={linkStyle} to="/books">
+              books
             </Link>
-          )}
-          {token ? (
-            <Link style={linkStyle} to="/recommended">
-              recommended
-            </Link>
-          ) : null}
-          {token ? (
-            <Link style={linkStyle} to="/authors" onClick={handleLogout}>
-              logout
-            </Link>
-          ) : null}
-        </div>
+            {token ? (
+              <Link style={linkStyle} to="/addbook">
+                add book
+              </Link>
+            ) : (
+              <Link style={linkStyle} to="/login">
+                login
+              </Link>
+            )}
+            {token ? (
+              <Link style={linkStyle} to="/recommended">
+                recommended
+              </Link>
+            ) : null}
+            {token ? (
+              <Link style={linkStyle} to="/authors" onClick={handleLogout}>
+                logout
+              </Link>
+            ) : null}
+          </div>
 
-        <Routes>
-          <Route path="/" element={<Navigate to="/authors" replace />} />
-          <Route
-            path="/authors"
-            element={
-              <Authors
-                setError={notify}
-                isAuthenticated={() => token != null}
-              />
-            }
-          />
-          <Route path="/books" element={<Books />} />
-          <Route
-            path="/addbook"
-            element={
-              <ProtectedRoute>
-                <NewBook setError={notify} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/recommended"
-            element={
-              <ProtectedRoute>
-                <FavouriteBooks setError={notify} />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/login"
-            element={<LoginForm setToken={setToken} setError={notify} />}
-          />
-        </Routes>
-      </Router>
-      <Notify errorMessage={errorMessage} />
-    </div>
+          <Routes>
+            <Route path="/" element={<Navigate to="/authors" replace />} />
+            <Route
+              path="/authors"
+              element={
+                <Authors
+                  setError={notify}
+                  isAuthenticated={() => token != null}
+                />
+              }
+            />
+            <Route path="/books" element={<Books />} />
+            <Route
+              path="/addbook"
+              element={
+                <ProtectedRoute>
+                  <NewBook setError={notify} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/recommended"
+              element={
+                <ProtectedRoute>
+                  <FavouriteBooks setError={notify} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/login"
+              element={<LoginForm setToken={setToken} setError={notify} />}
+            />
+          </Routes>
+        </Router>
+        <Notify errorMessage={errorMessage} />
+      </div>
+    </AppContext.Provider>
   );
 };
 

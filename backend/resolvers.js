@@ -12,6 +12,7 @@ const resolvers = {
     bookCount: async () => Book.collection.countDocuments(),
     authorCount: async () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
+      console.log("Book query");
       // If no filter -> return all books
       if (!args.author && !args.genre) {
         const books = await Book.find({}).populate("author");
@@ -34,7 +35,10 @@ const resolvers = {
 
       return await Book.find(filter).populate("author");
     },
-    allAuthors: async () => Author.find({}),
+    allAuthors: async () => {
+      console.log("Author query");
+      return await Author.find({});
+    },
     me: (root, args, context) => {
       return context.currentUser;
     },

@@ -1,47 +1,39 @@
-import { useLazyQuery } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { ALL_BOOKS, ME } from "../queries";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { AppContext } from "../App";
 
-const FavouriteBooks = ({ setError }) => {
-  const [loading, setLoading] = useState(true);
+const FavouriteBooks = () => {
   const [books, setBooks] = useState([]);
-  const [favoriteGenre, setFavoriteGenre] = useState(null);
 
-  // Lazy hooks
-  const [getMe] = useLazyQuery(ME);
-  const [getBooks] = useLazyQuery(ALL_BOOKS);
+  // Favourite Genre is passed to App using AppContext
+  const { favouriteGenre, setFavouriteGenre } = useContext(AppContext);
+
+  const { loading: loadingMe, data: dataMe } = useQuery(ME);
+  const { loading: loadingBooks, data: dataBooks } = useQuery(ALL_BOOKS, {
+    skip: !favouriteGenre,
+    variables: { genre: favouriteGenre },
+  });
 
   useEffect(() => {
-    const performQueries = async () => {
-      try {
-        const { loading: loadingMe, data: dataMe } = await getMe();
-        setLoading(loadingMe);
-        const genre = dataMe?.me?.favoriteGenre;
+    const genre = dataMe?.me?.favoriteGenre;
+    setFavouriteGenre(genre);
+  }, [dataMe]);
 
-        if (genre) {
-          setFavoriteGenre(genre);
+  useEffect(() => {
+    if (dataBooks?.allBooks) {
+      setBooks(dataBooks.allBooks);
+    }
+  }, [dataBooks]);
 
-          const { loading: loadingBooks, data: dataBooks } = await getBooks({
-            variables: { genre },
-          });
-          setLoading(loadingBooks);
-          setBooks(dataBooks?.allBooks || []);
-        }
-      } catch (error) {
-        setError(error.graphQLErrors.map((e) => e.message).join("\n"));
-      }
-    };
-    performQueries();
-  }, [getMe, getBooks]);
-
-  if (loading) {
+  if (loadingMe || loadingBooks) {
     return <div>loading...</div>;
   }
 
   return (
     <div>
       <h2>recommendations</h2>
-      Books in your favourite genre <strong>{favoriteGenre}</strong>
+      Books in your favourite genre <strong>{favouriteGenre}</strong>
       <div>
         <table>
           <tbody>
