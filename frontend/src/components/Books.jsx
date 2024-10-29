@@ -1,13 +1,12 @@
-import { useQuery } from "@apollo/client";
+import { useQuery, useLazyQuery } from "@apollo/client";
 import { ALL_BOOKS } from "../queries";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { useLocation } from "react-router-dom";
 
-const FilterButton = ({ genre, filterBooks }) => {
-  const [isActive, setIsActive] = useState(false);
+import { AppContext } from "../App";
 
+const FilterButton = ({ genre, filterBooks, isActive }) => {
   const handleClick = () => {
-    setIsActive(!isActive);
-
     filterBooks(genre);
   };
 
@@ -27,55 +26,66 @@ const FilterButton = ({ genre, filterBooks }) => {
 const Books = () => {
   const [allGenres, setAllGenres] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
-  const [filter, setFilter] = useState([]);
+
+  // Using AppContext to pass active genre to App for subscription
+  const { activeGenre, setActiveGenre } = useContext(AppContext);
+
+  const location = useLocation();
+
+  // Reset favouriteGenre on route change for consistency
+  useEffect(() => {
+    setActiveGenre("");
+  }, [location.pathname]);
 
   const result = useQuery(ALL_BOOKS);
 
+  // Using lazy query to fetch books by genre on button press
+  const [getBooksByGenre, { loading, error, data }] = useLazyQuery(ALL_BOOKS);
+
   const books = result?.data?.allBooks;
 
+  // Set filters and books once ALL_BOOKS completes
   useEffect(() => {
     if (books) {
       const genres = books.reduce((a, b) => {
         b.genres.map((g) => !a.includes(g) && a.push(g));
         return a;
       }, []);
-
+      if (filteredBooks.length < 1) {
+        setFilteredBooks(books);
+      }
       setAllGenres(genres);
     }
   }, [books]);
 
   useEffect(() => {
-    if (books) {
-      if (filter.length > 0) {
-        setFilteredBooks(
-          books.filter((b) => b.genres.some((g) => filter.includes(g))),
-        );
-      } else {
-        setFilteredBooks(books);
-      }
+    if (data) {
+      setFilteredBooks(data.allBooks);
     }
-  }, [filter, books]);
+  }, [data]);
 
-  if (result.loading) {
+  if (result.loading || loading) {
     return <div>loading...</div>;
   }
 
   const handleFilter = (genre) => {
-    if (filter.includes(genre)) {
-      const f = filter.filter((g) => g !== genre);
-      setFilter(f);
+    // If activeGenre is set, query books in that genre, if not, query all books
+    if (activeGenre === genre) {
+      setActiveGenre("");
+      getBooksByGenre();
     } else {
-      const f = [...filter, genre];
-      setFilter(f);
+      setActiveGenre(genre);
+      getBooksByGenre({
+        variables: { genre: genre },
+        fetchPolicy: "cache-and-network", // This keeps the view consistent
+      });
     }
   };
 
   return (
     <div>
       <h2>books</h2>
-      {filter.length > 0 ? (
-        <div>In genres: {filter.map((f) => `[${f}]`).join(" - ")} </div>
-      ) : null}
+      {activeGenre ? <div>In genre: {`[ ${activeGenre} ]`}</div> : null}
       <table>
         <tbody>
           <tr>
@@ -97,7 +107,12 @@ const Books = () => {
           <strong>filter:</strong>
         </div>
         {allGenres.map((g) => (
-          <FilterButton key={g} genre={g} filterBooks={handleFilter} />
+          <FilterButton
+            key={g}
+            genre={g}
+            filterBooks={handleFilter}
+            isActive={activeGenre === g}
+          />
         ))}
       </div>
     </div>

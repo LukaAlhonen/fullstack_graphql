@@ -39,7 +39,8 @@ const App = () => {
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [isNotifying, setIsNotifying] = useState(false);
-  const [favouriteGenre, setFavouriteGenre] = useState(""); // This is set in FavouriteBooks through AppContext
+  const [favouriteGenre, setFavouriteGenre] = useState(null); // This is set in FavouriteBooks through AppContext
+  const [activeGenre, setActiveGenre] = useState("");
 
   const client = useApolloClient();
 
@@ -86,6 +87,14 @@ const App = () => {
             addedBook,
           );
         }
+        // Update query for allBooks with activeGenre param
+        if (activeGenre) {
+          updateCache(
+            client.cache,
+            { query: ALL_BOOKS, variables: { genre: activeGenre } },
+            addedBook,
+          );
+        }
         // Update query for allBooks without genre param
         updateCache(client.cache, { query: ALL_BOOKS }, addedBook);
         notify(`Added Book: ${addedBook.title}`);
@@ -112,7 +121,7 @@ const App = () => {
     setToken(null);
     localStorage.clear();
     client.resetStore();
-    setFavouriteGenre("");
+    setFavouriteGenre(null);
   };
 
   const linkStyle = {
@@ -128,7 +137,9 @@ const App = () => {
   };
 
   return (
-    <AppContext.Provider value={{ favouriteGenre, setFavouriteGenre }}>
+    <AppContext.Provider
+      value={{ favouriteGenre, setFavouriteGenre, activeGenre, setActiveGenre }}
+    >
       <div>
         <Router>
           <div>
