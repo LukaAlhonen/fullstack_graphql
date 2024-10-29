@@ -19,6 +19,7 @@ const jwt = require("jsonwebtoken");
 const User = require("./models/users");
 const typeDefs = require("./schema");
 const resolvers = require("./resolvers");
+const createLoaders = require("./loaders");
 
 // MongoDB config
 require("dotenv").config();
@@ -75,14 +76,19 @@ const start = async () => {
     expressMiddleware(server, {
       context: async ({ req, res }) => {
         const auth = req ? req.headers.authorization : null;
+        let currentUser = null;
         if (auth && auth.startsWith("Bearer ")) {
           const decodedToken = jwt.verify(
             auth.substring(7),
             process.env.JWT_SECRET,
           );
-          const currentUser = await User.findById(decodedToken.id);
-          return { currentUser };
+          currentUser = await User.findById(decodedToken.id);
         }
+
+        // Init loaders and add to contex
+        const loaders = createLoaders();
+
+        return { currentUser, loaders };
       },
     }),
   );

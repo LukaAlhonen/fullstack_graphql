@@ -2,7 +2,6 @@ const { GraphQLError } = require("graphql");
 const jwt = require("jsonwebtoken");
 const { PubSub } = require("graphql-subscriptions");
 const pubsub = new PubSub();
-
 const Book = require("./models/book");
 const Author = require("./models/author");
 const User = require("./models/users");
@@ -47,7 +46,9 @@ const resolvers = {
     name: (root) => root.name,
     id: (root) => root._id,
     born: (root) => root.born,
-    bookCount: async (root) => await Book.countDocuments({ author: root._id }),
+    bookCount: (root, _args, { loaders }) => {
+      return loaders.bookCountLoader.load(root._id);
+    },
   },
   Mutation: {
     addBook: async (root, args, context) => {
