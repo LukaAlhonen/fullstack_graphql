@@ -49,7 +49,16 @@ const start = async () => {
   });
 
   const schema = makeExecutableSchema({ typeDefs, resolvers });
-  const serverCleanup = useServer({ schema }, wsServer);
+  const serverCleanup = useServer(
+    {
+      schema,
+      context: async () => {
+        const loaders = createLoaders();
+        return { loaders };
+      },
+    },
+    wsServer,
+  );
 
   const server = new ApolloServer({
     schema,

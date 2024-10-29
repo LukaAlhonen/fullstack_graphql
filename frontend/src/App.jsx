@@ -74,7 +74,6 @@ const App = () => {
     onData: ({ data }) => {
       const addedBook = data.data.bookAdded;
 
-      notify(`Added Book: ${addedBook.title}`);
       try {
         if (addedBook.genres.includes(favouriteGenre)) {
           // Update query for allBooks with genre param
@@ -89,6 +88,7 @@ const App = () => {
         }
         // Update query for allBooks without genre param
         updateCache(client.cache, { query: ALL_BOOKS }, addedBook);
+        notify(`Added Book: ${addedBook.title}`);
       } catch (error) {
         console.log(error);
         notify(
